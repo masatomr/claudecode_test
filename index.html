@@ -267,10 +267,6 @@
     const nextCanvas = document.getElementById('next-canvas');
     const nCtx = nextCanvas.getContext('2d');
 
-    const playerImg = new Image();
-    playerImg.crossOrigin = 'anonymous';
-    playerImg.src = 'https://raw.githubusercontent.com/masatomr/claudecode_test/947efe1d1db9e459c9103c820c6af8ddd14302b0/IMG_8044.jpg';
-
     let board, piece, nextPiece, score, level, lines, gameOver, paused, dropTimer, lastTime, animId;
 
     function newBoard() {
@@ -338,23 +334,12 @@
       document.getElementById('lines').textContent = lines;
     }
 
-    function drawCell(ctx, x, y, colorId, size = CELL, boardX = null, boardY = null) {
+    function drawCell(ctx, x, y, colorId, size = CELL) {
       if (!colorId) return;
-      const bx = boardX !== null ? boardX : x;
-      const by = boardY !== null ? boardY : y;
-      if (playerImg.complete && playerImg.naturalWidth > 0) {
-        const iw = playerImg.naturalWidth, ih = playerImg.naturalHeight;
-        const srcX = (bx / COLS) * iw;
-        const srcY = (by / ROWS) * ih;
-        ctx.drawImage(playerImg, srcX, srcY, iw / COLS, ih / ROWS,
-          x * size + 1, y * size + 1, size - 2, size - 2);
-        ctx.fillStyle = COLORS[colorId] + '55';
-        ctx.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
-      } else {
-        ctx.fillStyle = COLORS[colorId];
-        ctx.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
-      }
-      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      const color = COLORS[colorId];
+      ctx.fillStyle = color;
+      ctx.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
       ctx.fillRect(x * size + 1, y * size + 1, size - 2, 4);
       ctx.fillStyle = 'rgba(0,0,0,0.2)';
       ctx.fillRect(x * size + 1, y * size + size - 5, size - 2, 4);
@@ -364,11 +349,11 @@
       let dy = 0;
       while (!collides(piece, 0, dy + 1)) dy++;
       if (dy === 0) return;
-      bCtx.globalAlpha = 0.25;
+      bCtx.globalAlpha = 0.2;
       for (let r = 0; r < piece.matrix.length; r++)
         for (let c = 0; c < piece.matrix[r].length; c++)
           if (piece.matrix[r][c])
-            drawCell(bCtx, piece.x + c, piece.y + r + dy, piece.id, CELL, piece.x + c, piece.y + r + dy);
+            drawCell(bCtx, piece.x + c, piece.y + r + dy, piece.id);
       bCtx.globalAlpha = 1;
     }
 
@@ -394,14 +379,14 @@
 
       for (let r = 0; r < ROWS; r++)
         for (let c = 0; c < COLS; c++)
-          drawCell(bCtx, c, r, board[r][c], CELL, c, r);
+          drawCell(bCtx, c, r, board[r][c]);
 
       if (piece) {
         drawGhost();
         for (let r = 0; r < piece.matrix.length; r++)
           for (let c = 0; c < piece.matrix[r].length; c++)
             if (piece.matrix[r][c])
-              drawCell(bCtx, piece.x + c, piece.y + r, piece.id, CELL, piece.x + c, piece.y + r);
+              drawCell(bCtx, piece.x + c, piece.y + r, piece.id);
       }
     }
 
@@ -416,9 +401,8 @@
       for (let r = 0; r < m.length; r++)
         for (let c = 0; c < m[r].length; c++)
           if (m[r][c]) {
-            const bx = Math.floor(COLS / 2) - Math.floor(m[0].length / 2) + c;
-            const by = r;
-            drawCell(nCtx, offsetX + c, offsetY + r, m[r][c], size, bx, by);
+            nCtx.fillStyle = COLORS[m[r][c]];
+            nCtx.fillRect((offsetX + c) * size + 1, (offsetY + r) * size + 1, size - 2, size - 2);
           }
     }
 
