@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ストップウォッチ</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0f0f1a;
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+    }
+
+    .container {
+      text-align: center;
+      padding: 40px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      letter-spacing: 0.3em;
+      color: #aaa;
+      margin-bottom: 48px;
+      text-transform: uppercase;
+    }
+
+    .display {
+      font-size: clamp(4rem, 15vw, 8rem);
+      font-weight: 200;
+      letter-spacing: 0.05em;
+      font-variant-numeric: tabular-nums;
+      color: #fff;
+      margin-bottom: 8px;
+      line-height: 1;
+    }
+
+    .milliseconds {
+      font-size: clamp(1.5rem, 5vw, 2.5rem);
+      color: #7c7cff;
+      letter-spacing: 0.1em;
+      margin-bottom: 56px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      margin-bottom: 48px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 16px 40px;
+      border: none;
+      border-radius: 50px;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+    }
+
+    #startStop {
+      background: #7c7cff;
+      color: #fff;
+      min-width: 140px;
+    }
+
+    #startStop:hover {
+      background: #9a9aff;
+      transform: translateY(-2px);
+    }
+
+    #startStop.running {
+      background: #ff6b6b;
+    }
+
+    #startStop.running:hover {
+      background: #ff8585;
+    }
+
+    #lap {
+      background: transparent;
+      color: #aaa;
+      border: 2px solid #333;
+      min-width: 120px;
+    }
+
+    #lap:hover {
+      border-color: #666;
+      color: #fff;
+    }
+
+    #reset {
+      background: transparent;
+      color: #aaa;
+      border: 2px solid #333;
+      min-width: 120px;
+    }
+
+    #reset:hover {
+      border-color: #666;
+      color: #fff;
+    }
+
+    .laps {
+      max-height: 240px;
+      overflow-y: auto;
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    .laps::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .laps::-webkit-scrollbar-track {
+      background: #1a1a2e;
+    }
+
+    .laps::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 2px;
+    }
+
+    .lap-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-bottom: 1px solid #1e1e2e;
+      font-size: 0.9rem;
+      color: #ccc;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .lap-item:first-child {
+      color: #7c7cff;
+    }
+
+    .lap-item .lap-num {
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Stopwatch</h1>
+    <div class="display" id="time">00:00</div>
+    <div class="milliseconds" id="ms">.00</div>
+    <div class="controls">
+      <button id="startStop">Start</button>
+      <button id="lap">Lap</button>
+      <button id="reset">Reset</button>
+    </div>
+    <div class="laps" id="laps"></div>
+  </div>
+
+  <script>
+    let startTime = 0;
+    let elapsed = 0;
+    let timerInterval = null;
+    let running = false;
+    let lapCount = 0;
+    let lapStart = 0;
+
+    const timeEl = document.getElementById('time');
+    const msEl = document.getElementById('ms');
+    const startStopBtn = document.getElementById('startStop');
+    const lapBtn = document.getElementById('lap');
+    const resetBtn = document.getElementById('reset');
+    const lapsEl = document.getElementById('laps');
+
+    function format(ms) {
+      const totalSec = Math.floor(ms / 1000);
+      const min = Math.floor(totalSec / 60).toString().padStart(2, '0');
+      const sec = (totalSec % 60).toString().padStart(2, '0');
+      const cs = Math.floor((ms % 1000) / 10).toString().padStart(2, '0');
+      return { main: `${min}:${sec}`, ms: `.${cs}` };
+    }
+
+    function update() {
+      const now = Date.now();
+      const total = elapsed + (now - startTime);
+      const f = format(total);
+      timeEl.textContent = f.main;
+      msEl.textContent = f.ms;
+    }
+
+    startStopBtn.addEventListener('click', () => {
+      if (!running) {
+        startTime = Date.now();
+        if (lapStart === 0) lapStart = startTime;
+        timerInterval = setInterval(update, 30);
+        running = true;
+        startStopBtn.textContent = 'Stop';
+        startStopBtn.classList.add('running');
+      } else {
+        elapsed += Date.now() - startTime;
+        clearInterval(timerInterval);
+        running = false;
+        startStopBtn.textContent = 'Start';
+        startStopBtn.classList.remove('running');
+      }
+    });
+
+    lapBtn.addEventListener('click', () => {
+      if (!running && elapsed === 0) return;
+      lapCount++;
+      const now = running ? Date.now() : Date.now();
+      const total = elapsed + (running ? (now - startTime) : 0);
+      const lapElapsed = total - (lapStart === startTime && lapCount === 1 ? 0 : 0);
+
+      // Track per-lap time
+      const lapTime = total - lapTotalAtLastLap;
+      lapTotalAtLastLap = total;
+
+      const f = format(total);
+      const lf = format(lapTime);
+
+      const item = document.createElement('div');
+      item.className = 'lap-item';
+      item.innerHTML = `<span class="lap-num">Lap ${lapCount}</span><span>${lf.main}${lf.ms}</span><span>${f.main}${f.ms}</span>`;
+      lapsEl.insertBefore(item, lapsEl.firstChild);
+    });
+
+    let lapTotalAtLastLap = 0;
+
+    resetBtn.addEventListener('click', () => {
+      clearInterval(timerInterval);
+      running = false;
+      elapsed = 0;
+      lapCount = 0;
+      lapStart = 0;
+      lapTotalAtLastLap = 0;
+      timeEl.textContent = '00:00';
+      msEl.textContent = '.00';
+      startStopBtn.textContent = 'Start';
+      startStopBtn.classList.remove('running');
+      lapsEl.innerHTML = '';
+    });
+  </script>
+</body>
+</html>
