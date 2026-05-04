@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ランダムポケモン</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #1a1a2e;
+      font-family: 'Segoe UI', 'Hiragino Sans', sans-serif;
+      color: #fff;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 1.2rem;
+      letter-spacing: 0.2em;
+      color: #aaa;
+      margin-bottom: 32px;
+      text-transform: uppercase;
+    }
+
+    .card {
+      background: #16213e;
+      border-radius: 24px;
+      padding: 40px 48px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      transition: transform 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+    }
+
+    .pokemon-number {
+      font-size: 0.9rem;
+      color: #555;
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
+
+    .pokemon-name {
+      font-size: 2rem;
+      font-weight: 700;
+      text-transform: capitalize;
+      margin-bottom: 4px;
+      min-height: 2.5rem;
+    }
+
+    .pokemon-name-ja {
+      font-size: 1rem;
+      color: #aaa;
+      margin-bottom: 20px;
+      min-height: 1.5rem;
+    }
+
+    .pokemon-image {
+      width: 180px;
+      height: 180px;
+      object-fit: contain;
+      image-rendering: pixelated;
+      margin: 0 auto 24px;
+      display: block;
+      filter: drop-shadow(0 8px 24px rgba(124,124,255,0.3));
+    }
+
+    .pokemon-image.loading {
+      opacity: 0.3;
+    }
+
+    .types {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .type-badge {
+      padding: 5px 18px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .stat {
+      background: #0f0f1a;
+      border-radius: 12px;
+      padding: 10px 14px;
+      text-align: left;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: #666;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .stat-bar-wrap {
+      background: #1e1e2e;
+      border-radius: 4px;
+      height: 4px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+
+    .stat-bar {
+      height: 100%;
+      border-radius: 4px;
+      background: #7c7cff;
+      transition: width 0.6s ease;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      color: #aaa;
+      font-size: 0.85rem;
+      margin-bottom: 28px;
+    }
+
+    .info-item span {
+      display: block;
+      font-size: 0.7rem;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 2px;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 14px 40px;
+      background: #7c7cff;
+      color: #fff;
+      border: none;
+      border-radius: 50px;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      width: 100%;
+    }
+
+    .btn:hover {
+      background: #9a9aff;
+      transform: translateY(-2px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      background: #444;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .placeholder {
+      color: #333;
+    }
+
+    /* type colors */
+    .type-normal     { background: #9099a1; }
+    .type-fire       { background: #ff9c54; }
+    .type-water      { background: #4d90d5; }
+    .type-electric   { background: #f3d23b; color: #333; }
+    .type-grass      { background: #63bc5a; }
+    .type-ice        { background: #74cec0; }
+    .type-fighting   { background: #ce406a; }
+    .type-poison     { background: #ab6ac8; }
+    .type-ground     { background: #d97845; }
+    .type-flying     { background: #8fa8dd; }
+    .type-psychic    { background: #f97176; }
+    .type-bug        { background: #91c12f; }
+    .type-rock       { background: #c7b78b; }
+    .type-ghost      { background: #5269ac; }
+    .type-dragon     { background: #0a6dc4; }
+    .type-dark       { background: #5a5465; }
+    .type-steel      { background: #5a8ea2; }
+    .type-fairy      { background: #ec8fe6; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.4s ease forwards;
+    }
+  </style>
+</head>
+<body>
+  <h1>Random Pokemon</h1>
+
+  <div class="card" id="card">
+    <div class="pokemon-number placeholder" id="number">#???</div>
+    <div class="pokemon-name placeholder" id="name">----------</div>
+    <div class="pokemon-name-ja" id="name-ja"></div>
+    <img class="pokemon-image" id="img" src="" alt="" style="opacity:0">
+    <div class="types" id="types"></div>
+    <div class="stats" id="stats"></div>
+    <div class="info-row" id="info"></div>
+    <button class="btn" id="btn" onclick="fetchRandom()">ランダムを表示</button>
+  </div>
+
+  <script>
+    const TOTAL_POKEMON = 1025;
+
+    const STAT_LABELS = {
+      hp: 'HP',
+      attack: 'こうげき',
+      defense: 'ぼうぎょ',
+      'special-attack': 'とくこう',
+      'special-defense': 'とくぼう',
+      speed: 'すばやさ',
+    };
+
+    async function fetchRandom() {
+      const btn = document.getElementById('btn');
+      btn.disabled = true;
+      btn.textContent = '読み込み中...';
+
+      const id = Math.floor(Math.random() * TOTAL_POKEMON) + 1;
+
+      try {
+        const [pokemonRes, speciesRes] = await Promise.all([
+          fetch(`https://pokeapi.co/api/v2/pokemon/${id}`),
+          fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`),
+        ]);
+
+        const pokemon = await pokemonRes.json();
+        const species = await speciesRes.json();
+
+        render(pokemon, species);
+      } catch (e) {
+        btn.textContent = 'エラー。再試行';
+        btn.disabled = false;
+      }
+    }
+
+    function render(pokemon, species) {
+      const card = document.getElementById('card');
+
+      // Number
+      document.getElementById('number').textContent = `#${String(pokemon.id).padStart(4, '0')}`;
+      document.getElementById('number').classList.remove('placeholder');
+
+      // English name
+      document.getElementById('name').textContent = pokemon.name;
+      document.getElementById('name').classList.remove('placeholder');
+
+      // Japanese name
+      const jaName = species.names.find(n => n.language.name === 'ja-Hrkt') ||
+                     species.names.find(n => n.language.name === 'ja');
+      document.getElementById('name-ja').textContent = jaName ? jaName.name : '';
+
+      // Image (official artwork > front_default)
+      const img = document.getElementById('img');
+      const src = pokemon.sprites?.other?.['official-artwork']?.front_default
+               || pokemon.sprites?.front_default;
+      if (src) {
+        img.classList.add('loading');
+        img.style.opacity = '0.3';
+        const tmpImg = new Image();
+        tmpImg.onload = () => {
+          img.src = src;
+          img.alt = pokemon.name;
+          img.style.opacity = '1';
+          img.classList.remove('loading');
+          img.style.imageRendering = src.includes('official-artwork') ? 'auto' : 'pixelated';
+        };
+        tmpImg.src = src;
+      }
+
+      // Types
+      const typesEl = document.getElementById('types');
+      typesEl.innerHTML = pokemon.types
+        .map(t => `<span class="type-badge type-${t.type.name}">${t.type.name}</span>`)
+        .join('');
+
+      // Stats (only 6 main stats)
+      const statsEl = document.getElementById('stats');
+      statsEl.innerHTML = pokemon.stats.slice(0, 6).map(s => {
+        const label = STAT_LABELS[s.stat.name] || s.stat.name;
+        const pct = Math.min(100, Math.round(s.base_stat / 255 * 100));
+        return `
+          <div class="stat">
+            <div class="stat-label">${label}</div>
+            <div class="stat-value">${s.base_stat}</div>
+            <div class="stat-bar-wrap"><div class="stat-bar" style="width:${pct}%"></div></div>
+          </div>`;
+      }).join('');
+
+      // Height / Weight
+      const infoEl = document.getElementById('info');
+      infoEl.innerHTML = `
+        <div class="info-item"><span>たかさ</span>${(pokemon.height / 10).toFixed(1)} m</div>
+        <div class="info-item"><span>おもさ</span>${(pokemon.weight / 10).toFixed(1)} kg</div>
+      `;
+
+      // Animate card
+      card.classList.remove('fade-in');
+      void card.offsetWidth;
+      card.classList.add('fade-in');
+
+      const btn = document.getElementById('btn');
+      btn.textContent = 'つぎのポケモン';
+      btn.disabled = false;
+    }
+
+    // Load one on start
+    fetchRandom();
+  </script>
+</body>
+</html>
