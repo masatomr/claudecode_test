@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>近くの図書館を探す</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      background: #f0f4f8;
+      font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+      color: #2d3748;
+    }
+
+    header {
+      background: #2b6cb0;
+      color: white;
+      padding: 20px 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    header p {
+      font-size: 0.85rem;
+      opacity: 0.8;
+      margin-top: 4px;
+    }
+
+    .search-panel {
+      background: white;
+      padding: 24px;
+      border-bottom: 1px solid #e2e8f0;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+
+    .search-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .tab-btn {
+      padding: 8px 20px;
+      border: 2px solid #2b6cb0;
+      border-radius: 20px;
+      background: white;
+      color: #2b6cb0;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .tab-btn.active {
+      background: #2b6cb0;
+      color: white;
+    }
+
+    .tab-btn:hover:not(.active) {
+      background: #ebf4ff;
+    }
+
+    .search-form {
+      display: none;
+    }
+
+    .search-form.active {
+      display: block;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .form-group label {
+      font-size: 0.8rem;
+      color: #718096;
+      font-weight: 600;
+    }
+
+    .form-group input, .form-group select {
+      padding: 10px 14px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      transition: border-color 0.2s;
+      background: white;
+    }
+
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: #2b6cb0;
+    }
+
+    .search-btn {
+      padding: 10px 28px;
+      background: #2b6cb0;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+
+    .search-btn:hover {
+      background: #2c5282;
+    }
+
+    .search-btn:disabled {
+      background: #a0aec0;
+      cursor: not-allowed;
+    }
+
+    .location-btn {
+      padding: 10px 20px;
+      background: #38a169;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-family: inherit;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .location-btn:hover {
+      background: #2f855a;
+    }
+
+    .location-btn:disabled {
+      background: #a0aec0;
+      cursor: not-allowed;
+    }
+
+    .status-bar {
+      padding: 12px 24px;
+      font-size: 0.85rem;
+      color: #718096;
+      background: #f7fafc;
+      border-bottom: 1px solid #e2e8f0;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #e2e8f0;
+      border-top-color: #2b6cb0;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+
+    .spinner.visible {
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .results {
+      padding: 24px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .results-header {
+      font-size: 0.9rem;
+      color: #718096;
+      margin-bottom: 16px;
+    }
+
+    .results-header strong {
+      color: #2d3748;
+    }
+
+    .library-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .library-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+      border: 1px solid #e2e8f0;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+
+    .library-card:hover {
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      transform: translateY(-1px);
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .library-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #2b6cb0;
+      line-height: 1.3;
+    }
+
+    .category-badge {
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .category-public  { background: #ebf4ff; color: #2b6cb0; }
+    .category-univ    { background: #f0fff4; color: #276749; }
+    .category-other   { background: #faf5ff; color: #553c9a; }
+
+    .card-info {
+      display: grid;
+      gap: 6px;
+    }
+
+    .info-row {
+      display: flex;
+      gap: 8px;
+      font-size: 0.875rem;
+      align-items: flex-start;
+    }
+
+    .info-label {
+      color: #a0aec0;
+      min-width: 60px;
+      flex-shrink: 0;
+    }
+
+    .info-value {
+      color: #4a5568;
+    }
+
+    .card-actions {
+      margin-top: 14px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.2s;
+    }
+
+    .action-btn:hover { opacity: 0.8; }
+    .btn-web { background: #2b6cb0; color: white; }
+    .btn-map { background: #e2e8f0; color: #4a5568; }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #a0aec0;
+    }
+
+    .empty-state .icon { font-size: 3rem; margin-bottom: 16px; }
+    .empty-state p { font-size: 1rem; }
+
+    .error-msg {
+      background: #fff5f5;
+      border: 1px solid #fed7d7;
+      border-radius: 8px;
+      padding: 16px;
+      color: #c53030;
+      margin: 16px 0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📚 近くの図書館を探す</h1>
+    <p>CALIL図書館APIを使用して近くの図書館を検索します</p>
+  </header>
+
+  <div class="search-panel">
+    <div class="search-tabs">
+      <button class="tab-btn active" data-tab="geo">現在地から探す</button>
+      <button class="tab-btn" data-tab="area">地域から探す</button>
+    </div>
+
+    <div class="search-form active" id="form-geo">
+      <div class="form-row">
+        <div class="form-group">
+          <label>表示件数</label>
+          <select id="geo-limit">
+            <option value="5">5件</option>
+            <option value="10" selected>10件</option>
+            <option value="20">20件</option>
+          </select>
+        </div>
+        <button class="location-btn" id="geo-btn">
+          <span>📍</span> 現在地を取得して検索
+        </button>
+      </div>
+    </div>
+
+    <div class="search-form" id="form-area">
+      <div class="form-row">
+        <div class="form-group">
+          <label>都道府県</label>
+          <input type="text" id="area-pref" placeholder="例: 東京都" />
+        </div>
+        <div class="form-group">
+          <label>市区町村</label>
+          <input type="text" id="area-city" placeholder="例: 千代田区（任意）" />
+        </div>
+        <div class="form-group">
+          <label>表示件数</label>
+          <select id="area-limit">
+            <option value="5">5件</option>
+            <option value="10" selected>10件</option>
+            <option value="20">20件</option>
+          </select>
+        </div>
+        <button class="search-btn" id="area-btn">検索</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div class="spinner" id="spinner"></div>
+    <span id="status-text">検索方法を選んでください</span>
+  </div>
+
+  <div class="results">
+    <div id="results-header" class="results-header" style="display:none"></div>
+    <div id="library-list" class="library-grid">
+      <div class="empty-state">
+        <div class="icon">🏛️</div>
+        <p>現在地または地域を指定して図書館を検索してください</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const APPKEY = '727b9ece079b2548b4734a69506e195f';
+    const CALIL_URL = 'https://api.calil.jp/library';
+
+    const tabs = document.querySelectorAll('.tab-btn');
+    const forms = document.querySelectorAll('.search-form');
+    const spinner = document.getElementById('spinner');
+    const statusText = document.getElementById('status-text');
+    const libraryList = document.getElementById('library-list');
+    const resultsHeader = document.getElementById('results-header');
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        forms.forEach(f => f.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('form-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    function setLoading(msg) {
+      spinner.classList.add('visible');
+      statusText.textContent = msg;
+    }
+
+    function setStatus(msg) {
+      spinner.classList.remove('visible');
+      statusText.textContent = msg;
+    }
+
+    function getCategoryLabel(cat) {
+      return { public: '公共', univ: '大学', special: '専門', school: '学校' }[cat] || 'その他';
+    }
+
+    function getCategoryClass(cat) {
+      if (cat === 'public') return 'category-public';
+      if (cat === 'univ') return 'category-univ';
+      return 'category-other';
+    }
+
+    function renderLibraries(libraries) {
+      if (!libraries || libraries.length === 0) {
+        resultsHeader.style.display = 'none';
+        libraryList.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>この条件で図書館は見つかりませんでした</p></div>`;
+        return;
+      }
+
+      resultsHeader.style.display = 'block';
+      resultsHeader.innerHTML = `<strong>${libraries.length}件</strong>の図書館が見つかりました`;
+
+      libraryList.innerHTML = libraries.map(lib => {
+        const geo = lib.geocode ? lib.geocode.split(',') : null;
+        const mapUrl = geo ? `https://www.google.com/maps?q=${geo[1]},${geo[0]}` : null;
+
+        return `
+          <div class="library-card">
+            <div class="card-top">
+              <div class="library-name">${lib.formal || lib.short || '（名称不明）'}</div>
+              <span class="category-badge ${getCategoryClass(lib.category)}">${getCategoryLabel(lib.category)}</span>
+            </div>
+            <div class="card-info">
+              ${lib.address ? `<div class="info-row"><span class="info-label">住所</span><span class="info-value">${lib.address}</span></div>` : ''}
+              ${lib.tel ? `<div class="info-row"><span class="info-label">電話</span><span class="info-value">${lib.tel}</span></div>` : ''}
+              ${lib.post ? `<div class="info-row"><span class="info-label">郵便番号</span><span class="info-value">〒${lib.post}</span></div>` : ''}
+            </div>
+            <div class="card-actions">
+              ${lib.url_pc ? `<a class="action-btn btn-web" href="${lib.url_pc}" target="_blank" rel="noopener">ウェブサイト</a>` : ''}
+              ${mapUrl ? `<a class="action-btn btn-map" href="${mapUrl}" target="_blank" rel="noopener">地図で見る</a>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function showError(msg) {
+      resultsHeader.style.display = 'none';
+      libraryList.innerHTML = `<div class="error-msg">⚠️ ${msg}</div>`;
+    }
+
+    function calilJsonp(params) {
+      return new Promise((resolve, reject) => {
+        const cbName = '_calil_cb_' + Date.now();
+        const timeout = setTimeout(() => {
+          delete window[cbName];
+          reject(new Error('タイムアウト: CALILサーバーへの接続に失敗しました'));
+        }, 10000);
+
+        window[cbName] = (data) => {
+          clearTimeout(timeout);
+          delete window[cbName];
+          document.getElementById('_calil_script')?.remove();
+          resolve(data);
+        };
+
+        const query = new URLSearchParams({ ...params, appkey: APPKEY, callback: cbName }).toString();
+        const script = document.createElement('script');
+        script.id = '_calil_script';
+        script.src = `${CALIL_URL}?${query}`;
+        script.onerror = () => {
+          clearTimeout(timeout);
+          delete window[cbName];
+          reject(new Error('APIへの接続に失敗しました'));
+        };
+        document.head.appendChild(script);
+      });
+    }
+
+    document.getElementById('geo-btn').addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        setStatus('お使いのブラウザは位置情報に対応していません');
+        return;
+      }
+      const btn = document.getElementById('geo-btn');
+      btn.disabled = true;
+      setLoading('現在地を取得中...');
+
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setLoading(`現在地 (${lat.toFixed(4)}, ${lng.toFixed(4)}) 付近の図書館を検索中...`);
+        try {
+          const limit = document.getElementById('geo-limit').value;
+          const data = await calilJsonp({ geocode: `${lng},${lat}`, limit });
+          renderLibraries(data);
+          setStatus(`検索完了 — 現在地付近 ${data.length}件`);
+        } catch (e) {
+          showError(e.message);
+          setStatus('検索に失敗しました');
+        }
+        btn.disabled = false;
+      }, (err) => {
+        setStatus('位置情報の取得に失敗しました: ' + err.message);
+        btn.disabled = false;
+      }, { timeout: 10000 });
+    });
+
+    document.getElementById('area-btn').addEventListener('click', async () => {
+      const pref = document.getElementById('area-pref').value.trim();
+      if (!pref) {
+        setStatus('都道府県を入力してください');
+        return;
+      }
+      const city = document.getElementById('area-city').value.trim();
+      const limit = document.getElementById('area-limit').value;
+      const btn = document.getElementById('area-btn');
+      btn.disabled = true;
+      setLoading(`「${pref}${city}」の図書館を検索中...`);
+      try {
+        const params = { pref, limit };
+        if (city) params.city = city;
+        const data = await calilJsonp(params);
+        renderLibraries(data);
+        setStatus(`検索完了 — ${pref}${city} ${data.length}件`);
+      } catch (e) {
+        showError(e.message);
+        setStatus('検索に失敗しました');
+      }
+      btn.disabled = false;
+    });
+
+    ['area-pref', 'area-city'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('area-btn').click();
+      });
+    });
+  </script>
+</body>
+</html>
